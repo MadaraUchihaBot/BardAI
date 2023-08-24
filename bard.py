@@ -3,7 +3,6 @@ from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 import requests
 
 app = Client("my_bot", api_id=19099900, api_hash="2b445de78e5baf012a0793e60bd4fbf5", bot_token="6390766852:AAHAXsP3NHPX2NbnRaFDZA9ZH1h6FyNH1K4")
-
 API_URL = "https://opentdb.com/api.php?amount=10&category=31&type=multiple"
 
 def get_quiz_questions():
@@ -17,7 +16,11 @@ current_question = 0
 questions = get_quiz_questions()
 
 @app.on_message(filters.command("start"))
-def start_quiz(client, message):
+def start_command(client, message):
+    send_welcome_message(client, message.chat.id)
+
+@app.on_message(filters.command("quiz"))
+def quiz_command(client, message):
     global current_question
     current_question = 0
     send_question(client, message.chat.id)
@@ -51,6 +54,10 @@ def callback_handler(client, callback_query):
         current_question += 1
         send_question(client, user_id)
 
+def send_welcome_message(client, chat_id):
+    welcome_message = "Welcome to the Anime Quiz Bot! Use /quiz to start the quiz."
+    client.send_message(chat_id, welcome_message)
+
 def send_question(client, chat_id):
     if current_question < len(questions):
         question = questions[current_question]['question']
@@ -71,5 +78,4 @@ def send_question(client, chat_id):
         client.send_message(chat_id, "Quiz completed!")
 
 if __name__ == "__main__":
-    print("strt")
     app.run()
