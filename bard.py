@@ -4,7 +4,7 @@ from pyrogram.types import Message
 
 BASE_URL = 'https://api.safone.me'
 
-app = Client("my_bot", api_id=YOUR_API_ID, api_hash="YOUR_API_HASH", bot_token="YOUR_BOT_TOKEN")
+app = Client("my_bot", api_id=19099900, api_hash="2b445de78e5baf012a0793e60bd4fbf5", bot_token="6390766852:AAHAXsP3NHPX2NbnRaFDZA9ZH1h6FyNH1K4")
 
 def ask_bard(question, image=None):
     endpoint = f"{BASE_URL}/bard"
