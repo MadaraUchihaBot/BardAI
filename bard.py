@@ -32,6 +32,7 @@ def handle_text(client, message):
 
 @app.on_callback_query()
 def callback_handler(client, callback_query):
+    global current_question  # Add this line
     user_id = callback_query.from_user.id
     selected_option = int(callback_query.data)
 
@@ -45,6 +46,7 @@ def callback_handler(client, callback_query):
         
         current_question += 1
         send_question(client, user_id)
+
 
 def send_welcome_message(client, chat_id):
     welcome_message = "Welcome to the Anime Quiz Bot! Use /quiz to start the quiz."
