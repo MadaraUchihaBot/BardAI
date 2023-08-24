@@ -25,18 +25,10 @@ def quiz_command(client, message):
     current_question = 0
     send_question(client, message.chat.id)
 
-@app.on_message(filters.text & ~filters.command)
-def handle_answer(client, message):
-    global current_question
-    if current_question < len(questions):
-        user_answer = int(message.text) - 1
-        correct_answer = questions[current_question]['correct_option']
-        if user_answer == correct_answer:
-            client.send_message(message.chat.id, "Correct! 🎉")
-        else:
-            client.send_message(message.chat.id, "Wrong answer. 😕")
-        current_question += 1
-        send_question(client, message.chat.id)
+@app.on_message(filters.text)
+def handle_text(client, message):
+    if not message.text.startswith("/"):
+        handle_answer(client, message)
 
 @app.on_callback_query()
 def callback_handler(client, callback_query):
