@@ -1,58 +1,75 @@
-import requests
 from pyrogram import Client, filters
-from pyrogram.types import Message
-
-BASE_URL = 'https://api.safone.me'
+from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
+import requests
 
 app = Client("my_bot", api_id=19099900, api_hash="2b445de78e5baf012a0793e60bd4fbf5", bot_token="6390766852:AAHAXsP3NHPX2NbnRaFDZA9ZH1h6FyNH1K4")
 
-def ask_bard(question, image=None):
-    endpoint = f"{BASE_URL}/bard"
-    headers = {'Content-Type': 'application/json'}
-    body = {'message': question}
+API_URL = "https://opentdb.com/api.php?amount=10&category=31&type=multiple"
 
-    files = None
-    if image:
-        files = {'image': open(image, 'rb')}
+def get_quiz_questions():
+    response = requests.get(API_URL)
+    if response.status_code == 200:
+        data = response.json()
+        return data['results']
+    return None
 
-    try:
-        response = requests.post(endpoint, json=body, headers=headers, files=files)
-        response_data = response.json()
+current_question = 0
+questions = get_quiz_questions()
 
-        if response.ok:
-            choices = response_data.get('choices', [])
-            image_url = response_data.get('image_url')
-            if choices:
-                content = choices[0]['content'][0]
-            else:
-                content = "Error: No response content found."
+@app.on_message(filters.command("start"))
+def start_quiz(client, message):
+    global current_question
+    current_question = 0
+    send_question(client, message.chat.id)
 
-            return content, image_url
+@app.on_message(filters.text & ~filters.command)
+def handle_answer(client, message):
+    global current_question
+    if current_question < len(questions):
+        user_answer = int(message.text) - 1
+        correct_answer = questions[current_question]['correct_option']
+        if user_answer == correct_answer:
+            client.send_message(message.chat.id, "Correct! 🎉")
         else:
-            error_message = f"Error: {response.status_code}, {response_data}"
-            print(error_message)
-            return error_message, None
-    except requests.RequestException as e:
-        return f"Error occurred: {e}", None
+            client.send_message(message.chat.id, "Wrong answer. 😕")
+        current_question += 1
+        send_question(client, message.chat.id)
 
-@app.on_message(filters.command("bard", prefixes="/"))
-async def ask_command_handler(client: Client, message: Message):
-    if not message.reply_to_message or not message.reply_to_message.photo:
-        await message.reply("Please reply to a message with an image or provide a question after the /bard command.")
-        return
+@app.on_callback_query()
+def callback_handler(client, callback_query):
+    user_id = callback_query.from_user.id
+    selected_option = int(callback_query.data)
 
-    question = " ".join(message.command[1:])
-    image = message.reply_to_message.photo.file_id if message.reply_to_message else None
-
-    if question or image:
-        response_content, image_url = ask_bard(question, image)
-
-        if image_url:
-            await client.send_photo(message.chat.id, image_url, caption=response_content)
+    if current_question < len(questions):
+        correct_option = questions[current_question]['correct_option']
+        if selected_option == correct_option:
+            client.answer_callback_query(callback_query.id, text="Correct! 🎉")
+            client.send_message(user_id, "Congratulations! You've earned a reward!")
         else:
-            await message.reply(response_content)
+            client.answer_callback_query(callback_query.id, text="Wrong answer. 😕")
+        
+        current_question += 1
+        send_question(client, user_id)
+
+def send_question(client, chat_id):
+    if current_question < len(questions):
+        question = questions[current_question]['question']
+        options = questions[current_question]['incorrect_answers']
+        correct_option = questions[current_question]['correct_answer']
+
+        options.append(correct_option)
+        options = sorted(options)  # Shuffle options here if you want random order
+
+        option_buttons = []
+        for idx, option in enumerate(options):
+            option_buttons.append([InlineKeyboardButton(f"{idx + 1}. {option}", callback_data=str(idx))])
+
+        reply_markup = InlineKeyboardMarkup(option_buttons)
+
+        client.send_message(chat_id, f"Question {current_question + 1}:\n{question}", reply_markup=reply_markup)
     else:
-        await message.reply("Please provide a question after the /bard command.")
+        client.send_message(chat_id, "Quiz completed!")
 
 if __name__ == "__main__":
+    print("strt")
     app.run()
